@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RAEN — First Call Free</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Call a paid x402 API on Base for net $0. Pay the $0.05 USDC challenge, get instantly rebated after settlement. Real HTTP 402, real on-chain refund.">
+<style>
+:root { color-scheme: dark; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0e14; color:#e6edf3; font-family:ui-sans-serif,system-ui,sans-serif; line-height:1.6; padding:2rem 1rem; }
+main { max-width:860px; margin:0 auto; }
+h1 { font-size:2rem; margin:1rem 0 .5rem; } h1 span { color:#22d3ee; }
+h2 { color:#22d3ee; font-size:1.2rem; margin:2rem 0 .5rem; }
+.sub { color:#8b949e; margin-bottom:1.5rem; }
+.card { background:#161b22; border:1px solid #30363d; border-radius:10px; padding:1.2rem; margin:1rem 0; }
+.step { display:flex; gap:.8rem; margin:.8rem 0; }
+.n { background:#22d3ee; color:#0a0e14; font-weight:700; border-radius:50%; width:1.8rem; height:1.8rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+pre { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:1rem; overflow-x:auto; font-size:.85rem; color:#7ee787; margin:.8rem 0; }
+code { color:#7ee787; }
+a { color:#22d3ee; }
+.pill { display:inline-block; background:#12261e; border:1px solid #2ea043; color:#7ee787; border-radius:99px; padding:.15rem .8rem; font-size:.8rem; margin:.2rem .3rem .2rem 0; }
+.warn { background:#2d2305; border:1px solid #f0b72f; color:#f0b72f; border-radius:8px; padding:.8rem 1rem; font-size:.9rem; margin:1rem 0; }
+footer { color:#8b949e; font-size:.85rem; margin-top:3rem; border-top:1px solid #30363d; padding-top:1rem; }
+</style>
+</head>
+<body><main>
+<h1>First Call <span>Free</span></h1>
+<p class="sub">Try a paid x402 API on Base mainnet for net $0. Not a demo key, not a sandbox — a real HTTP 402 payment and a real on-chain refund.</p>
+<div>
+<span class="pill">✅ Rebate rail live</span>
+<span class="pill">✅ First rebate settled on-chain (Nov 9, 2026)</span>
+<span class="pill">✅ Base mainnet USDC</span>
+</div>
+
+<h2>How it works — charge and rebate</h2>
+<div class="card">
+<p>The service charges its normal <strong>$0.05 USDC</strong> x402 challenge. After your payment settles on Base, the RAEN rebater sends the <strong>$0.05 straight back</strong> to your wallet. Net cost: <strong>$0.00</strong>.</p>
+<p style="margin-top:.6rem">Why not just a free endpoint? Because the point is to prove the <em>real</em> payment path — you experience the actual x402 402-challenge → EIP-3009 settlement → USDC rebate loop, end to end. Free tier fakes it; this doesn't.</p>
+</div>
+
+<h2>Steps</h2>
+<div class="step"><div class="n">1</div><div>Have a wallet with a little ETH for gas on Base (the settlement is an on-chain EIP-3009 transfer — even though the payment is rebated, the gas is yours).</div></div>
+<div class="step"><div class="n">2</div><div>POST to the law-lookup endpoint with your address in the <code>x-payer-address</code> header. You'll get an HTTP <code>402</code> with a payment challenge.</div></div>
+<div class="step"><div class="n">3</div><div>Pay the challenge with any x402 client (or the <a href="https://github.com/bshelby88/x402-cookbook">RAEN cookbook recipes</a>).</div></div>
+<div class="step"><div class="n">4</div><div>Within seconds of settlement, the rebater pays $0.05 USDC back to your address. Check it on Basescan.</div></div>
+<div class="warn">One free call per wallet per 30 days. The rebate is keyed to <em>settled</em> payments — an unpaid challenge gets no rebate. The rebate treasury (AgentCash) is capped at 100 rebates/day; if it's exhausted, the call simply isn't rebated that day.</div>
+
+<h2>Copy-paste</h2>
+<pre>curl -s -X POST https://royal-ruby-x402.fly.dev/api/law-lookup \
+  -H 'Content-Type: application/json' \
+  -H 'x-payer-address: 0xYOUR_WALLET' \
+  -d '{"question":"How long does a credit bureau have to investigate a dispute?"}'</pre>
+<p style="margin:.5rem 0">The 402 response's <code>payment-required</code> header carries a base64 challenge — decode it and you'll see <code>payTo: 0x9b8a27e0…</code>, <code>network: eip155:8453</code>, <code>scheme: exact</code>. Pay it with the <a href="https://github.com/bshelby88/x402-cookbook">x402 client from the cookbook</a> and your answer JSON comes back.</p>
+
+<h2>Verify everything</h2>
+<p>We don't ask you to trust the rebate — verify it:</p>
+<ul style="margin-left:1.2rem">
+<li><a href="https://settlement-collector.fly.dev/proof">Proof of Commerce ledger</a> — live fleet telemetry, no marketing overlay</li>
+<li><a href="https://royal-ruby-rebater.fly.dev/health">Rebater health</a> — live rebate count and treasury</li>
+<li><a href="https://royal-ruby-x402.fly.dev/.well-known/x402">Service manifest</a> — pricing and terms, machine-readable</li>
+<li>The rebate itself lands as a USDC Transfer on Base — look up your address on Basescan after paying</li>
+</ul>
+
+<h2>What you get</h2>
+<div class="card">
+<p><strong>royal-ruby-x402</strong> — US consumer-rights law citation lookup: structured FCRA, FDCPA, TILA, state UDAP, reporting timelines, and statutes of limitations. Information only, not legal advice. A taste of the 12-service RAEN fleet: <a href="https://github.com/bshelby88/raen-agent-directory">full directory</a>, <a href="https://raen-mcp-gateway.fly.dev/mcp">MCP gateway</a> (listed on the <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=raen">MCP Registry</a>).</p>
+</div>
+
+<footer>Operated by Royal Agentic Enterprises · <a href="mailto:jadedfocus@gmail.com">jadedfocus@gmail.com</a> · payTo 0x9b8a27e03ceba490953cda8ab1291c0e13baf72f · This page describes a paid API trial with a full rebate; gas costs on Base are the caller's.</footer>
+</main></body>
+</html>
