@@ -62,7 +62,7 @@ footer { color:#8b949e; font-size:.85rem; margin-top:3rem; border-top:1px solid 
 fetch('https://settlement-collector.fly.dev/ledger.json').then(r=>r.json()).then(d=>{
   const f=n=>'$'+(Math.round((n||0)*100)/100).toFixed(2);
   document.getElementById('live-line').innerHTML =
-    'External revenue settled to date: <strong>'+f(d.total_external_usdc)+' USDC</strong> across <strong>'+(d.total_settled_tx_count??(d.transactions||[]).length)+' settled on-chain payments</strong>. Last 24h fleet-wide: '+(window.__f24?window.__f24:'');
+    'External revenue settled to date: <strong>'+f(d.total_external_usdc)+' USDC</strong> across <strong>'+((d.total_settled_tx_count)??(d.transactions||[]).length)+' settled on-chain payments</strong>. Full per-service breakdown and raw txs: one click below.';
 }).catch(()=>{ document.getElementById('live-line').textContent='Live ledger temporarily unreachable — see the link below to verify directly.'; });
 </script>
 
