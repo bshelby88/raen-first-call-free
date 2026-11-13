@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>x402 Facilitators Explained — RAEN</title>
+<meta name="description" content="Verify, settle, failure modes, and how a rebate rail keeps the first call net $0.">
+<style>body{background:#0b1020;color:#dce6f7;font-family:system-ui,sans-serif;max-width:720px;margin:0 auto;padding:2rem 1.25rem;line-height:1.6}h1{font-size:1.6rem;color:#fff}h2{color:#9fc0ff;margin-top:1.6rem}h3{color:#c0d4f5}a{color:#7ea4ff}code{background:#141c33;padding:.1rem .35rem;border-radius:5px;font-size:.9em}pre code{display:block;padding:1rem;overflow-x:auto}footer{margin-top:2.5rem;color:#5f6f95;font-size:.82rem;border-top:1px solid #253258;padding-top:1rem}</style>
+<script>fetch("https://raen-hits.raen.workers.dev/?p=article-x402-facilitators",{cache:"no-store",keepalive:true}).catch(function(){});</script>
+</head><body>
+<h1>x402 Facilitators Explained: Verify, Settle, and Why a Rebate Rail Keeps the First Call Free</h1>
+
+<p>If you are evaluating x402 for agent payments, the component you will interact with most — and trust most — is the facilitator. This post explains what it actually does, how it can fail, and how a rebate rail built on top of it lets a buyer try a paid API with zero net cost.</p>
+
+<h2>What a facilitator is</h2>
+
+<p>A facilitator is a service that performs the two payment-critical operations of the x402 protocol on behalf of a resource server:</p>
+
+<p>- <b><code>POST /verify</code></b> — read-only validation of a payment payload against payment requirements: the signature, the amount, the asset, the recipient, the expiry and replay state. It must not move funds or commit state.</p>
+<p>- <b><code>POST /settle</code></b> — the state-committing step: typically broadcasting the on-chain transfer (for example, a USDC <code>transferWithAuthorization</code> under EIP-3009) and returning a settlement proof the buyer can keep.</p>
+
+<p>The spec&#x27;s core invariant: at least one check — a verify or a settle — must run before the resource executes. The default <code>authorization</code> ordering is verify → resource → settle, so the buyer pays only for work that actually completed.</p>
+
+<h2>How facilitators can fail — and what they check</h2>
+
+<p><b>Replay.</b> A signed payment payload must be usable once. Facilitators track consumed payloads and reject re-submission; without this, one signature could pay for a thousand calls.</p>
+
+<p><b>Wrong amount or asset.</b> <code>/verify</code> compares the payload against the payment requirements the *server* offered — the scheme, network, amount in atomic units, and the asset contract address. A client that rewrites the price must fail verification, which is why servers must pass their own matching requirements, never the client&#x27;s copy of <code>accepted</code>.</p>
+
+<p><b>Wrong recipient.</b> The <code>payTo</code> address is part of the signed requirements. A payload paying anyone other than the offered recipient is invalid — this is the check that stops man-in-the-middle redirection of funds.</p>
+
+<p><b>Expiry and timeout.</b> Requirements carry <code>maxTimeoutSeconds</code>; payloads expire. A stale payment is rejected rather than settled at old terms.</p>
+
+<p>None of this requires the facilitator to be trusted with custody — the client signs a transfer to a specific recipient for a specific amount, and the facilitator submits exactly that.</p>
+
+<h2>The rebate rail: making the first call net $0</h2>
+
+<p>The buyer&#x27;s real hesitation with per-call APIs is not the price — it is the trust to pay a stranger once. A <b>rebate rail</b> answers it directly:</p>
+
+<p>1. The agent pays the first call normally — the settlement is real USDC, on-chain, through the facilitator.</p>
+<p>2. A rebate service watches the settlement and sends the buyer an equivalent refund, on-chain, to the paying address.</p>
+<p>3. The buyer&#x27;s net cost for the trial call is $0 — but both the payment and the refund are public, verifiable transactions.</p>
+
+<p>This is different from a free trial: the payment actually settles, so the full protocol path (402, sign, verify, settle, proof) is exercised end-to-end. The buyer proves the flow works on their stack *and* gets their money back, with the ledger showing both legs. Publishing the zeros — buyers who never completed the flow — alongside the settled ones is what makes the proof honest.</p>
+
+<p>For API sellers, a rebate rail converts &quot;trust me&quot; into &quot;try it free, on-chain, in sixty seconds&quot; — the single highest-conversion pitch for agent-native payments.</p>
+
+<h2>Takeaway</h2>
+
+<p>Facilitators make x402 practical by concentrating verify/settle correctness in one auditable place: replay, amount, asset and recipient are all checked before or at settlement, and the resource never executes with nothing checked. Stack a rebate rail on top and the first paid call becomes a free, fully-settled demonstration — which is exactly how agent payments should be sold.</p>
+<footer>RAEN — agent payments, settled per call. Try a paid API call <b>net $0</b>: <a href="/">live settle+rebate proof</a>. · <a href="/articles/">all articles</a></footer>
+</body></html>

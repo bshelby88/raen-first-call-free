@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How AI Agents Pay Each Other with x402 — RAEN</title>
+<meta name="description" content="The x402 flow: HTTP 402, USDC, and per-call settlement for AI-agent APIs.">
+<style>body{background:#0b1020;color:#dce6f7;font-family:system-ui,sans-serif;max-width:720px;margin:0 auto;padding:2rem 1.25rem;line-height:1.6}h1{font-size:1.6rem;color:#fff}h2{color:#9fc0ff;margin-top:1.6rem}h3{color:#c0d4f5}a{color:#7ea4ff}code{background:#141c33;padding:.1rem .35rem;border-radius:5px;font-size:.9em}pre code{display:block;padding:1rem;overflow-x:auto}footer{margin-top:2.5rem;color:#5f6f95;font-size:.82rem;border-top:1px solid #253258;padding-top:1rem}</style>
+<script>fetch("https://raen-hits.raen.workers.dev/?p=article-x402-agents-pay",{cache:"no-store",keepalive:true}).catch(function(){});</script>
+</head><body>
+<h1>How AI Agents Pay Each Other with x402: HTTP 402, USDC, and Per-Call Settlement</h1>
+
+<p>AI agents increasingly call APIs owned by someone else — search, data, letter generation, analysis. When the caller is software, a monthly invoice and a dashboard signup are friction the machine cannot complete. x402 is an open standard for internet-native payments that fixes this: the API responds with HTTP 402 &quot;Payment Required&quot;, the agent pays, and the call completes — all inside one HTTP conversation.</p>
+
+<h2>The four pieces</h2>
+
+<p>- <b>Client</b> — the agent (or the framework wrapping it) making the call.</p>
+<p>- <b>Resource server</b> — the API selling access per call.</p>
+<p>- <b>Facilitator</b> — an optional third party that verifies and settles the payment on behalf of the server.</p>
+<p>- <b>Payment mechanism</b> — the scheme and asset. The common default is <code>exact</code> EVM with USDC, a dollar stablecoin, on networks like Base.</p>
+
+<h2>The flow, step by step</h2>
+
+<p>1. <b>The client calls the API without payment.</b> The server does not execute the resource; it returns a 402 with a <code>PaymentRequired</code> object describing exactly what a valid payment looks like.</p>
+<p>2. <b>The client constructs the payment.</b> It picks one entry from the server&#x27;s <code>accepts[]</code> array, signs the corresponding payment payload (for EVM <code>exact</code>, an EIP-3009 <code>transferWithAuthorization</code> against USDC), and re-sends the request carrying the payload in the transport-defined header.</p>
+<p>3. <b>The facilitator verifies.</b> The resource server (or its middleware) hands the payload plus its own payment requirements to the facilitator&#x27;s <code>/verify</code> endpoint. This is read-only: signature, amount, asset, recipient and expiry are checked without moving funds.</p>
+<p>4. <b>The resource executes, then the facilitator settles.</b> In the default <code>authorization</code> flow, settlement happens only after the resource completes successfully — the buyer never pays for a failed call. <code>/settle</code> broadcasts the on-chain USDC transfer and returns a settlement proof.</p>
+<p>5. <b>The server returns the paid response</b>, and the settlement proof rides back to the client so the agent can account for what it spent.</p>
+
+<h2>What the 402 actually looks like</h2>
+
+<p>This is the shape from the x402 v2 specification (values from the spec&#x27;s own example):</p>
+
+<pre><code>
+{
+  &quot;x402Version&quot;: 2,
+  &quot;resource&quot;: {
+    &quot;url&quot;: &quot;https://api.example.com/premium-data&quot;,
+    &quot;description&quot;: &quot;Access to premium market data&quot;
+  },
+  &quot;accepts&quot;: [
+    {
+      &quot;scheme&quot;: &quot;exact&quot;,
+      &quot;network&quot;: &quot;eip155:84532&quot;,
+      &quot;amount&quot;: &quot;10000&quot;,
+      &quot;asset&quot;: &quot;0x036CbD53842c5426634e7929541eC2318f3dCF7e&quot;,
+      &quot;payTo&quot;: &quot;0x209693Bc6afc0C5328bA36FaF03C514EF312287C&quot;,
+      &quot;maxTimeoutSeconds&quot;: 60,
+      &quot;extra&quot;: { &quot;name&quot;: &quot;USDC&quot;, &quot;version&quot;: &quot;2&quot; }
+    }
+  ]
+}
+</code></pre>
+
+<p>Note what is *not* there: no account creation, no API key, no invoice. The <code>accepts[]</code> entry is machine-readable enough that an agent can decide — from the scheme, network, amount and asset alone — whether to pay.</p>
+
+<h2>Why agents change the pricing model</h2>
+
+<p>A human developer tolerates signup friction because the relationship lasts months. An agent may need one call, once, from a wallet holding a few dollars. Per-call settlement with USDC means:</p>
+
+<p>- <b>No minimum commitment</b> — the agent pays exactly for the calls it makes.</p>
+<p>- <b>Composable trust</b> — the payment proof is cryptographically checkable, so the agent can verify it was charged the advertised amount.</p>
+<p>- <b>Fail-safe ordering</b> — in the default flow, funds move only after the resource succeeds.</p>
+
+<h2>Takeaway</h2>
+
+<p>x402 turns &quot;HTTP 402&quot; from a curiosity into a working payment rail for machine-to-machine API calls. For agent developers, adopting it means your agents can buy from any x402-enabled API without a human in the loop; for API owners, it means agent traffic can finally pay for itself, one call at a time.</p>
+<footer>RAEN — agent payments, settled per call. Try a paid API call <b>net $0</b>: <a href="/">live settle+rebate proof</a>. · <a href="/articles/">all articles</a></footer>
+</body></html>

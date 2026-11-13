@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Turn Any API into a Per-Call Paid API (USDC on Base) — RAEN</title>
+<meta name="description" content="Why per-call x402 beats API keys for agent traffic, and what changes in your handler.">
+<style>body{background:#0b1020;color:#dce6f7;font-family:system-ui,sans-serif;max-width:720px;margin:0 auto;padding:2rem 1.25rem;line-height:1.6}h1{font-size:1.6rem;color:#fff}h2{color:#9fc0ff;margin-top:1.6rem}h3{color:#c0d4f5}a{color:#7ea4ff}code{background:#141c33;padding:.1rem .35rem;border-radius:5px;font-size:.9em}pre code{display:block;padding:1rem;overflow-x:auto}footer{margin-top:2.5rem;color:#5f6f95;font-size:.82rem;border-top:1px solid #253258;padding-top:1rem}</style>
+<script>fetch("https://raen-hits.raen.workers.dev/?p=article-percall-api-usdc",{cache:"no-store",keepalive:true}).catch(function(){});</script>
+</head><body>
+<h1>Turning Any API into a Per-Call Paid API That Settles in USDC on Base</h1>
+
+<p>If you run an API, agent traffic is either already knocking at your door or will be soon. Agents do not fill out signup forms, paste API keys into a dashboard, or pay monthly invoices with a card. The x402 standard gives you a way to charge them per call — in USDC on Base — without changing what your API does.</p>
+
+<h2>Why per-call beats API keys for agent traffic</h2>
+
+<p><b>API keys assume a relationship that does not exist yet.</b> Keys require a signup flow, a billing contact, and a payment method on file. An autonomous agent with a wallet and a task has none of those. Per-call payment meets the agent where it is: it can pay, immediately, for the one call it needs.</p>
+
+<p><b>Invoices assume predictable volume.</b> Monthly plans force you to guess tiers and force buyers to overpay for headroom. Per-call pricing scales perfectly with demand — zero calls cost zero dollars, ten thousand calls cost exactly ten thousand times the price.</p>
+
+<p><b>Per-call matches agent economics.</b> Agents budget per task. A call that costs $0.01–$1.00 is a rounding error next to the LLM tokens spent deciding to make it. Charging per call keeps your API inside that budget instead of triggering a procurement conversation.</p>
+
+<h2>What your server has to do: the 402</h2>
+
+<p>The entire opt-in is one response shape. When an unauthenticated request arrives, return a 402 with a <code>PaymentRequired</code> object. From the x402 v2 specification:</p>
+
+<pre><code>
+{
+  &quot;x402Version&quot;: 2,
+  &quot;resource&quot;: {
+    &quot;url&quot;: &quot;https://api.example.com/letters&quot;,
+    &quot;description&quot;: &quot;FCRA dispute-letter generation&quot;
+  },
+  &quot;accepts&quot;: [
+    {
+      &quot;scheme&quot;: &quot;exact&quot;,
+      &quot;network&quot;: &quot;eip155:84532&quot;,
+      &quot;amount&quot;: &quot;7500&quot;,
+      &quot;asset&quot;: &quot;USDC contract address&quot;,
+      &quot;payTo&quot;: &quot;your wallet address&quot;,
+      &quot;maxTimeoutSeconds&quot;: 60
+    }
+  ]
+}
+</code></pre>
+
+<p>The <code>amount</code> is in atomic token units — <code>&quot;7500&quot;</code> is $0.0075 of a 6-decimal USDC. The <code>accepts[]</code> entry tells the agent everything it needs: which scheme, which network, how much, to whom, and how long it has.</p>
+
+<h2>What changes in your handler after settlement</h2>
+
+<p>With an x402 SDK, the middleware does most of the work and your handler changes are minimal:</p>
+
+<p>1. <b>Wrap your routes</b> with the payment middleware, declaring which routes are paid and their <code>accepts[]</code>.</p>
+<p>2. <b>Before your handler runs</b> (in the default <code>authorization</code> flow), the payment payload is verified against your own requirements — the middleware passes your matching requirements, not the client&#x27;s copy, to the facilitator&#x27;s <code>/verify</code>. This binding matters: a client that rewrites the terms must fail here, not at your bank.</p>
+<p>3. <b>Your handler executes exactly as before</b>, returning whatever it always returned.</p>
+<p>4. <b>After success</b>, <code>/settle</code> moves the USDC on-chain and the settlement proof is attached to the response.</p>
+
+<p>The one real design decision is idempotency: decide what happens if the same request retries after settlement, and make your paid work idempotent per payment proof.</p>
+
+<h2>Honest state of play</h2>
+
+<p>Agent-paid APIs are early. Traffic volumes today do not make anyone rich, and facilitator coverage varies by network. But the cost of adding x402 to an existing API is small, the revenue model is strictly additive (per-call on top of whatever keys you already sell), and every agent framework moving toward wallet-native payments increases the value of being listed and payable now.</p>
+
+<h2>Takeaway</h2>
+
+<p>Turning an API into a per-call paid API is a middleware change, not a business-model redesign: declare your price in an <code>accepts[]</code> entry, let the SDK verify and settle USDC on Base, and keep your handler untouched. For agent traffic, that is the difference between an abandoned signup form and a paid call.</p>
+<footer>RAEN — agent payments, settled per call. Try a paid API call <b>net $0</b>: <a href="/">live settle+rebate proof</a>. · <a href="/articles/">all articles</a></footer>
+</body></html>
