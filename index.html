@@ -51,8 +51,26 @@ footer { color:#8b949e; font-size:.85rem; margin-top:3rem; border-top:1px solid 
 <pre>curl -s -X POST https://royal-ruby-x402.fly.dev/api/law-lookup \
   -H 'Content-Type: application/json' \
   -H 'x-payer-address: 0xYOUR_WALLET' \
-  -d '{"question":"How long does a credit bureau have to investigate a dispute?"}'</pre>
+  -d '{"topic":"credit-report disputes for collection accounts","state":"TX","scope":"both"}'</pre>
 <p style="margin:.5rem 0">The 402 response's <code>payment-required</code> header carries a base64 challenge — decode it and you'll see <code>payTo: 0x9b8a27e0…</code>, <code>network: eip155:8453</code>, <code>scheme: exact</code>. Pay it with the <a href="https://github.com/bshelby88/x402-cookbook">x402 client from the cookbook</a> and your answer JSON comes back.</p>
+<div style="margin:1.2rem 0;padding:.85rem 1.1rem;border:1px solid #2a3a66;border-radius:10px">
+  <strong>Get the weekly proof ledger by email.</strong> One line a week: what settled, what failed, revenue to the cent. No marketing.
+  <form id="subform" style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
+    <input id="subemail" type="email" required placeholder="you@example.com" style="flex:1;min-width:220px;padding:.55rem .7rem;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3">
+    <button type="submit" style="padding:.55rem 1rem;background:#22d3ee;color:#0a0e14;border:0;border-radius:8px;font-weight:700;cursor:pointer">Send me the ledger</button>
+  </form>
+  <p id="subout" style="margin:.4rem 0 0;font-size:.85rem;color:#8b949e"></p>
+</div>
+<script>
+document.getElementById('subform').addEventListener('submit', function(e){
+  e.preventDefault();
+  fetch('https://settlement-collector.fly.dev/subscribe', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email: document.getElementById('subemail').value, source: 'first-call-free'})})
+    .then(r => r.json()).then(j => {
+      document.getElementById('subout').textContent = j.ok ? 'On the list — first ledger lands this week.' : (j.error || 'Something went wrong.');
+    }).catch(() => { document.getElementById('subout').textContent = 'Could not reach the collector — email jadedfocus@gmail.com instead.'; });
+});
+</script>
 
 <h2 id="live">Live, right now</h2>
 <div class="card" id="live-proof">
